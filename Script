@@ -1,0 +1,109 @@
+//@version=4
+study("JID Cruce Triple EMA 23.04.06", shorttitle="Julio Toribio Analytics", overlay=true)
+
+// Configurar los períodos de las EMAs
+ema1_period = input(9, title="EMA 1 Period", minval=1)
+ema2_period = input(25, title="EMA 2 Period", minval=1)
+ema3_period = input(99, title="EMA 3 Period", minval=1)
+
+// Calcular las EMAs
+ema1 = ema(close, ema1_period)
+ema2 = ema(close, ema2_period)
+ema3 = ema(close, ema3_period)
+
+// Dibujar las EMAs en el gráfico
+plot(ema1, color=color.new(#ffd51a, 0), linewidth=1, title="EMA 1")
+plot(ema2, color=color.new(#ff7417, 0), linewidth=1, title="EMA 2")
+plot(ema3, color=color.new(#ff1313, 0), linewidth=1, title="EMA 3")
+
+// Configurar los parámetros de las Bandas de Bollinger
+bb_length = input(20, title="Bollinger Bands Length", minval=1)
+bb_std = input(2, title="Bollinger Bands Standard Deviation", type=input.float)
+
+// Calcular las Bandas de Bollinger
+basis = sma(close, bb_length)
+dev = bb_std * stdev(close, bb_length)
+upper = basis + dev
+lower = basis - dev
+
+// Dibujar las Bandas de Bollinger en el gráfico
+plot(basis, color=color.rgb(255, 255, 255, 90), linewidth=1, title="Bollinger Bands Basis")
+plot(upper, color=color.rgb(255, 255, 255, 80), linewidth=1, title="Bollinger Bands Upper")
+plot(lower, color=color.rgb(255, 255, 255, 80), linewidth=1, title="Bollinger Bands Lower")
+
+// Verificar las condiciones de cruce Doble
+crossed_above_1_2 = crossover(ema1, ema2)
+crossed_above_1_3 = crossover(ema1, ema3)
+crossed_above_2_1 = crossover(ema2, ema1)
+crossed_above_2_3 = crossover(ema2, ema3)
+crossed_above_3_1 = crossover(ema3, ema1)
+crossed_above_3_2 = crossover(ema3, ema2)
+
+crossed_below_1_2 = crossunder(ema1, ema2)
+crossed_below_1_3 = crossunder(ema1, ema3)
+crossed_below_2_1 = crossunder(ema2, ema1)
+crossed_below_2_3 = crossunder(ema2, ema3)
+crossed_below_3_1 = crossunder(ema3, ema1)
+crossed_below_3_2 = crossunder(ema3, ema2)
+
+// Verificar las condiciones de cruce Triple
+crossed_above_1 = crossover(ema1, ema2) and crossover(ema1, ema3)
+crossed_above_2 = crossover(ema2, ema1) and crossover(ema2, ema3)
+crossed_above_3 = crossover(ema3, ema1) and crossover(ema3, ema2) 
+
+crossed_below_1 = crossunder(ema1, ema2) and crossunder(ema1, ema3)
+crossed_below_2 = crossunder(ema2, ema1) and crossunder(ema2, ema3)
+crossed_below_3 = crossunder(ema3, ema1) and crossunder(ema3, ema2)
+
+// Dibujar íconos en el gráfico cuando se crucen las EMAs Dobles
+plotshape((crossed_above_1_2 and not (crossed_above_1_3 or crossed_above_2_3)), style=shape.triangleup, location=location.belowbar, color=color.rgb(47, 245, 255), size=size.tiny)
+plotshape((crossed_below_1_2 and not (crossed_below_1_3 or crossed_below_2_3)), style=shape.triangledown, location=location.abovebar, color=color.rgb(255, 237, 42), size=size.tiny)
+
+// Dibujar íconos en el gráfico cuando se crucen las EMAs Triples
+plotshape(crossed_above_1 or crossed_above_2 or crossed_above_3 , style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.small)  // Color azul para alcista
+plotshape(crossed_below_1 or crossed_below_2 or crossed_below_3 , style=shape.triangledown, location=location.abovebar, color=color.purple, size=size.small) // Color morado para bajista
+
+// Crear alertas para cruces de ema dobles
+cond_doble_alcista = (crossed_above_1_2 and not (crossed_above_1_3 or crossed_above_2_3))
+cond_doble_bajista = (crossed_below_1_2 and not (crossed_below_1_3 or crossed_below_2_3))
+
+if cond_doble_alcista
+    alert("Cruce EMA Dobles Alcista", alert.freq_once_per_bar_close)
+
+if cond_doble_bajista
+    alert("Cruce EMA Dobles Bajista", alert.freq_once_per_bar_close)
+    
+// Crear alertas para cruces de ema triples
+cond_triple = crossed_above_1 or crossed_above_2 or crossed_above_3 or crossed_below_1 or crossed_below_2 or crossed_below_3
+
+if cond_triple
+    if (crossed_above_1 or crossed_above_2 or crossed_above_3)
+        alert("Cruce EMA Triples Alcista", alert.freq_once_per_bar_close)
+    else if (crossed_below_1 or crossed_below_2 or crossed_below_3)
+        alert("Cruce EMA Triples Bajista", alert.freq_once_per_bar_close)
+
+
+
+
+
+// --- Volumen ---
+//plot(volume, color=close[1] < close ? color.green : color.red, style=plot.style_histogram, title="Volume")
+
+// --- On Balance Volume (Custom OBV) ---
+//custom_obv = cum(close > close[1] ? volume : close < close[1] ? -volume : 0)
+//plot(custom_obv, color=color.blue, title="OBV", linewidth=2)
+
+// --- Volumen ---
+//plotvolume = input(true, title="Mostrar Volumen Histograma")
+//volumeColor = close > close[1] ? color.green : color.red
+//plot(plotvolume ? volume : na, style=plot.style_histogram, color=volumeColor, linewidth=1, title="Volumen")
+
+// --- On Balance Volume (OBV) con EMA ---
+//show_obv = input(true, title="Mostrar OBV con EMA")
+//my_obv = cum(close > close[1] ? volume : close < close[1] ? -volume : 0)
+//ema_my_obv = ema(my_obv, 20) // Puedes cambiar '20' a otro valor si deseas una longitud diferente para la EMA.
+
+//hline(0, "Zero Line", color=color.gray)
+//plot(show_obv ? my_obv : na, color=color.blue, title="OBV", linewidth=2)
+//plot(show_obv ? ema_my_obv : na, color=color.orange, title="EMA OBV", linewidth=2)
+
